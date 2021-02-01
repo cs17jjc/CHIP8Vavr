@@ -201,13 +201,20 @@ public class Processor {
         }
         return nextState;
     }
+    private State SNEREG(State state){
+        List<Short> values = state.extractRegisterValues(state.extractRegisterIndexes());
+        if(values.get(0).byteValue() != values.get(1).byteValue()){
+            return state.clone().incrProgramCounter();
+        }
+        return state.clone();
+    }
 
 
     public Processor(){
         instructionSet = List.of(
                 new Instruction("CLS",(short)0x00E0,(short)0xFFFF, this::CLR),
                 new Instruction("RET",(short)0x00EE,(short)0xFFFF, this::RET),
-                new Instruction("SYS addr",(short)0x0000,(short)0xF000, null),
+                new Instruction("SYS addr",(short)0x0000,(short)0xF000, null),//Not used anymore
                 new Instruction("JP addr",(short)0x1000,(short)0xF0000, this::JP),
                 new Instruction("CALL addr",(short)0x2000,(short)0xF000, this::CALL),
                 new Instruction("SE Vx byte",(short)0x3000,(short)0xF000, this::SKIPEQUAL),
@@ -224,7 +231,7 @@ public class Processor {
                 new Instruction("SHR Vx Vy",(short)0x8006,(short)0xF00F, this::SHRREG),
                 new Instruction("SUBN Vx Vy",(short)0x8007,(short)0xF00F, this::SUBNREG),
                 new Instruction("SHL Vx Vy",(short)0x800E,(short)0xF00F, this::SHLREG),
-                new Instruction("SNE Vx Vy",(short)0x9000,(short)0xF00F, null),
+                new Instruction("SNE Vx Vy",(short)0x9000,(short)0xF00F, this::SNEREG),
                 new Instruction("LD I addr",(short)0xA000,(short)0xF000, null),
                 new Instruction("JP V0 addr",(short)0xB000,(short)0xF000, null),
                 new Instruction("RND Vx byte",(short)0xC000,(short)0xF000, null),
