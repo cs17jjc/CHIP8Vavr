@@ -80,8 +80,9 @@ public class State {
         byte upper = memory.get(programCounter);
         byte lower = memory.get(programCounter + 0x01);
 
-        short inst = (short) (upper << 8);
-        return (short) (inst + lower);
+        short inst = (short) ((upper << 8) & 0x0000FFFF);
+
+        return (short) ((inst | (lower & 0x00FF)));
     }
 
     public State incrProgramCounter(){
@@ -112,5 +113,17 @@ public class State {
                 .update(addr, (byte) ((instruction & 0xFF00) >> 8))
                 .update(addr + 1, (byte) (instruction & 0x00FF)));
         return nextState;
+    }
+
+    public State print(boolean print){
+        if(print){
+            System.out.printf("0x%04X PC | ",getProgramCounter());
+            System.out.printf("0x%04X INST | ",getInst());
+            getRegisters().forEach(s -> System.out.printf("0x%04X ",s));
+            System.out.print("| ");
+            getStack().forEach(s -> System.out.printf("0x%04X ",s));
+            System.out.println();
+        }
+        return this;
     }
 }

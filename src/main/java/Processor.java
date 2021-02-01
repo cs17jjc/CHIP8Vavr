@@ -1,3 +1,4 @@
+import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
@@ -47,17 +48,55 @@ public class Processor {
         return state.clone();
     }
 
+    private Tuple2<Short, Boolean> addShortUnsigned(short a, short b){
+        boolean carry = false;
+        int mask = 0x0001;
+        int output = 0x0000;
+
+        while(mask <= 0x8000){
+
+            boolean aBit = (a & mask) == mask;
+            boolean bBit = (b & mask) == mask;
+
+            boolean xor = aBit ^ bBit;
+            boolean and = aBit & bBit;
+            boolean sum = xor ^ carry;
+
+
+            if(sum){
+                output += mask;
+            }
+
+            carry = and | (carry & xor);
+
+            mask = mask << 1;
+        }
+
+        return Tuple.of((short)(output & 0xFFFF), carry);
+    }
+
     private State LD(State state){
         State nextState = state.clone();
-        short value = nextState.extractLSByte();
+        short value = (short) (state.extractLSByte() & 0x00FF);
         nextState.setRegisters(state.getRegisters().update(state.extractRegisterIndexes().get(0),value));
         return nextState;
     }
     private State ADD(State state){
         State nextState = state.clone();
         byte registerAddress = state.extractRegisterIndexes().get(0);
-        short value = nextState.extractLSByte();
-        nextState.setRegisters(state.getRegisters().update(registerAddress, (short) (value + state.getRegisters().get(registerAddress))));
+        short lsb = (short) (state.extractLSByte() & 0x00FF);
+        short reg = state.getRegisters().get(registerAddress);
+
+        Tuple2<Short,Boolean> result = addShortUnsigned(lsb,reg);
+
+        short carryFlag = 0x0000;
+        if(result._2()){
+            carryFlag = 0x0001;
+        }
+
+        nextState.setRegisters(state.getRegisters()
+                .update(0xF,carryFlag)
+                .update(registerAddress, result._1()));
         return nextState;
     }
 
@@ -70,45 +109,96 @@ public class Processor {
 
     private State ORREG(State state){
         State nextState = state.clone();
-
+        List<Byte> regAddr = state.extractRegisterIndexes();
+        List<Short> registers = state.getRegisters();
+        registers = registers.update(regAddr.get(0),
+                (short)(registers.get(regAddr.get(0)) | registers.get(regAddr.get(1))));
+        nextState.setRegisters(registers);
         return nextState;
     }
     private State ANDREG(State state){
         State nextState = state.clone();
-
+        List<Byte> regAddr = state.extractRegisterIndexes();
+        List<Short> registers = state.getRegisters();
+        registers = registers.update(regAddr.get(0),
+                (short)(registers.get(regAddr.get(0)) & registers.get(regAddr.get(1))));
+        nextState.setRegisters(registers);
         return nextState;
     }
     private State XORREG(State state){
         State nextState = state.clone();
-
+        List<Byte> regAddr = state.extractRegisterIndexes();
+        List<Short> registers = state.getRegisters();
+        registers = registers.update(regAddr.get(0),
+                (short)(registers.get(regAddr.get(0)) ^ registers.get(regAddr.get(1))));
+        nextState.setRegisters(registers);
         return nextState;
     }
     private State ADDREG(State state){
         State nextState = state.clone();
         List<Byte> regAddr = state.extractRegisterIndexes();
-        List<Short> registers = nextState.getRegisters();
-        short value = (short) (registers.get(regAddr.get(0)) + registers.get(regAddr.get(1)));
-        nextState.setRegisters(registers.update(regAddr.get(0), value));
+        List<Short> registers = state.getRegisters();
+        Tuple2<Short,Boolean> result = addShortUnsigned(registers.get(regAddr.get(0)),registers.get(regAddr.get(1)));
+
+        short carryFlag = 0x0000;
+        if(result._2()){
+            carryFlag = 0x0001;
+        }
+
+        nextState.setRegisters(state.getRegisters()
+                .update(0xF,carryFlag)
+                .update(regAddr.get(0), result._1()));
+        nextState.setRegisters(registers);
         return nextState;
     }
     private State SUBREG(State state){
         State nextState = state.clone();
+        List<Byte> regAddr = state.extractRegisterIndexes();
+        List<Short> registers = state.getRegisters();
+        int value = registers.get(regAddr.get(0)) - registers.get(regAddr.get(1));
 
+        short flag = 0x0000;
+        if(registers.get(regAddr.get(0)) > registers.get(regAddr.get(1))) {
+            flag = 0x0001;
+        }
+
+        registers = registers.update(0xF,flag)
+                .update(regAddr.get(0), (short)(value & 0xFFFF));
+        nextState.setRegisters(registers);
         return nextState;
     }
     private State SHRREG(State state){
         State nextState = state.clone();
-
+        if((state.getRegisters().get(state.extractRegisterIndexes().get(0)) & 0x0001) == 0x0001){
+            nextState.setRegisters(state.getRegisters().update(0xF, (short) 0x0001));
+        } else {
+            nextState.setRegisters(state.getRegisters().update(0xF, (short) 0x0000));
+        }
         return nextState;
     }
     private State SUBNREG(State state){
         State nextState = state.clone();
+        List<Byte> regAddr = state.extractRegisterIndexes().reverse();
+        List<Short> registers = state.getRegisters();
+        int value = registers.get(regAddr.get(0)) - registers.get(regAddr.get(1));
 
+        short flag = 0x0000;
+        if(registers.get(regAddr.get(0)) > registers.get(regAddr.get(1))) {
+            flag = 0x0001;
+        }
+
+        registers = registers.update(0xF,flag)
+                .update(regAddr.get(0), (short)(value & 0xFFFF));
+        nextState.setRegisters(registers);
         return nextState;
     }
     private State SHLREG(State state){
         State nextState = state.clone();
-
+        if((state.getRegisters().get(state.extractRegisterIndexes().get(0)) & 0x8000) == 0x8000){
+            nextState.setRegisters(state.getRegisters().update(0xF, (short) 0x0001));
+        } else {
+            nextState.setRegisters(state.getRegisters().update(0xF, (short) 0x0000));
+        }
         return nextState;
     }
 
