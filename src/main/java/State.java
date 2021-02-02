@@ -1,11 +1,12 @@
+import DataTypes.BYTE;
+import DataTypes.SHORT;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
 
 public class State {
-    short programCounter;//Memory address of currently executing instruction
 
-    public State(short programCounter, List<Short> registers, short index, byte delay, byte sound, List<Short> stack, List<Byte> memory) {
+    public State(SHORT programCounter, List<SHORT> registers, SHORT index, BYTE delay, BYTE sound, List<SHORT> stack, List<BYTE> memory) {
         this.programCounter = programCounter;
         this.registers = registers;
         this.index = index;
@@ -15,113 +16,111 @@ public class State {
         this.memory = memory;
     }
 
-    private List<Short> registers;//16 8-bit registers
-    private short index;//Address register
+    SHORT programCounter;//Memory address of currently executing instruction
 
-    private byte delay;
-    private byte sound;
+    private List<SHORT> registers;//16 8-bit registers
+    private SHORT index;//Address register
 
-    private List<Short> stack;//Stack pointers
+    private BYTE delay;
+    private BYTE sound;
 
-    private List<Byte> memory;
+    private List<SHORT> stack;//Stack pointers
 
-    public short getProgramCounter() {
+    private List<BYTE> memory;
+
+    public SHORT getProgramCounter() {
         return programCounter;
     }
-    public void setProgramCounter(short programCounter) {
+    public void setProgramCounter(SHORT programCounter) {
         this.programCounter = programCounter;
     }
-    public List<Short> getRegisters() {
+    public List<SHORT> getRegisters() {
         return List.ofAll(registers);
     }
-    public void setRegisters(List<Short> registers) {
+    public void setRegisters(List<SHORT> registers) {
         this.registers = registers;
     }
-    public short getIndex() {
+    public SHORT getIndex() {
         return index;
     }
-    public void setIndex(short index) {
+    public void setIndex(SHORT index) {
         this.index = index;
     }
-    public byte getDelay() {
+    public BYTE getDelay() {
         return delay;
     }
-    public void setDelay(byte delay) {
+    public void setDelay(BYTE delay) {
         this.delay = delay;
     }
-    public byte getSound() {
+    public BYTE getSound() {
         return sound;
     }
-    public void setSound(byte sound) {
+    public void setSound(BYTE sound) {
         this.sound = sound;
     }
-    public List<Short> getStack() {
+    public List<SHORT> getStack() {
         return List.ofAll(stack);
     }
-    public void setStack(List<Short> stack) {
+    public void setStack(List<SHORT> stack) {
         this.stack = stack;
     }
-    public List<Byte> getMemory() {
+    public List<BYTE> getMemory() {
         return List.ofAll(memory);
     }
-    public void setMemory(List<Byte> memory) {
+    public void setMemory(List<BYTE> memory) {
         this.memory = memory;
     }
 
     public static State defaultState(){
-        return new State((short) 0x0200,List.fill(16,0).map(i -> (short)0),(short)0,(byte)0,(byte)0,List.empty(),List.fill(4096,0).map(i -> (byte)0));
+        return new State(SHORT.of( 0x0200),List.fill(16,0).map(i -> SHORT.of(0)),SHORT.of(0),BYTE.of(0),BYTE.of(0),List.empty(),List.fill(4096,0).map(i -> BYTE.of(0)));
     }
 
     public State clone(){
         return new State(getProgramCounter(),getRegisters(),getIndex(),getDelay(),getSound(),getStack(),getMemory());
     }
 
-    public short getInst(){
-        byte upper = memory.get(programCounter);
-        byte lower = memory.get(programCounter + 0x01);
-
-        short inst = (short) ((upper << 8) & 0x0000FFFF);
-
-        return (short) ((inst | (lower & 0x00FF)));
+    public SHORT getInst(){
+        return new SHORT(memory.get(programCounter.toInt()),memory.get(programCounter.toInt()+1));
     }
 
     public State incrProgramCounter(){
-        programCounter = (short) (programCounter + 2);
+        programCounter = programCounter.ADD(SHORT.of(1))._1();
         return this;
     }
 
-    public List<Byte> extractRegisterIndexes(){
-        short registers = (short) ((getInst() & 0x0FF0) >> 4);
-        return List.of((byte)((registers & 0xF0) >> 4),(byte)(registers & 0x0F));
+    public List<Integer> extractRegisterIndexes(){
+        return List.of(getInst().getNibble(2),getInst().getNibble(1)).map(BYTE::toInt);
     }
 
-    public List<Short> extractRegisterValues(List<Byte> indexes){
-        return registers.zipWithIndex().filter(t -> indexes.contains(t._2().byteValue())).map(Tuple2::_1);
+    public List<SHORT> extractRegisterValues(List<Integer> indexes){
+        return registers.zipWithIndex().filter(t -> indexes.contains(t._2())).map(Tuple2::_1);
     }
 
-    public byte extractLSByte(){
-        return (byte) (getInst() & 0x00FF);
+    public BYTE extractLSByte(){
+        return getIndex().getLower();
     }
 
-    public short extractLSShort(){
-        return (short) (getInst() & 0x0FFF);
+    public SHORT extractLSShort(){
+        return new SHORT(getIndex().getNibble(3),extractLSByte());
     }
 
-    public State writeInstruction(short addr, short instruction){
+    public State writeInstruction(int addr, int instruction){
         State nextState = clone();
+        SHORT addrS = SHORT.of(addr);
+        SHORT instS = SHORT.of(instruction);
         nextState.setMemory(getMemory()
-                .update(addr, (byte) ((instruction & 0xFF00) >> 8))
-                .update(addr + 1, (byte) (instruction & 0x00FF)));
+                .update(addrS.toInt(), instS.getUpper())
+                .update(addrS.toInt() + 1, instS.getLower()));
         return nextState;
     }
 
     public State print(boolean print){
         if(print){
-            System.out.printf("0x%04X PC | ",getProgramCounter());
-            System.out.printf("0x%04X INST | ",getInst());
-            getRegisters().forEach(s -> System.out.printf("0x%04X ",s));
+            System.out.printf("0x%04X PC | ",getProgramCounter().toInt());
+            System.out.printf("0x%04X INST | ",getInst().toInt());
+            getRegisters().forEach(s -> System.out.printf("0x%04X ",s.toInt()));
             System.out.print("| ");
-            getStack().forEach(s -> System.out.printf("0x%04X ",s));
+            getStack().forEach(s -> System.out.printf("0x%04X ",s.toInt()));
             System.out.println();
         }
         return this;

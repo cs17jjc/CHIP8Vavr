@@ -1,3 +1,5 @@
+import DataTypes.BYTE;
+import DataTypes.SHORT;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
@@ -29,71 +31,42 @@ public class Processor {
     }
 
     private State SKIPEQUAL(State state){
-        List<Short> values = state.extractRegisterValues(state.extractRegisterIndexes());
-        if(values.get(0) == state.extractLSByte()){
+        List<SHORT> values = state.extractRegisterValues(state.extractRegisterIndexes());
+        if(values.get(0).matches(new SHORT(BYTE.of(0),state.extractLSByte()))){
             return state.clone().incrProgramCounter();
         }
         return state.clone();
     }
     private State SKIPNOTEQUAL(State state){
-        List<Short> values = state.extractRegisterValues(state.extractRegisterIndexes());
-        if(values.get(0) != state.extractLSByte()){
+        List<SHORT> values = state.extractRegisterValues(state.extractRegisterIndexes());
+        if(!values.get(0).matches(new SHORT(BYTE.of(0),state.extractLSByte()))){
             return state.clone().incrProgramCounter();
         }
         return state.clone();
     }
     private State SKIPEQUALREG(State state){
-        List<Short> values = state.extractRegisterValues(state.extractRegisterIndexes());
-        if(values.get(0).byteValue() == values.get(1).byteValue()){
+        List<SHORT> values = state.extractRegisterValues(state.extractRegisterIndexes());
+        if(values.get(0).matches(values.get(1))){
             return state.clone().incrProgramCounter();
         }
         return state.clone();
     }
 
-    private Tuple2<Short, Boolean> addShortUnsigned(short a, short b){
-        boolean carry = false;
-        int mask = 0x0001;
-        int output = 0x0000;
-
-        while(mask <= 0x8000){
-
-            boolean aBit = (a & mask) == mask;
-            boolean bBit = (b & mask) == mask;
-
-            boolean xor = aBit ^ bBit;
-            boolean and = aBit & bBit;
-            boolean sum = xor ^ carry;
-
-
-            if(sum){
-                output += mask;
-            }
-
-            carry = and | (carry & xor);
-
-            mask = mask << 1;
-        }
-
-        return Tuple.of((short)(output & 0xFFFF), carry);
-    }
-
     private State LD(State state){
         State nextState = state.clone();
-        short value = (short) (state.extractLSByte() & 0x00FF);
+        SHORT value = new SHORT(BYTE.of(0),state.extractLSByte());
         nextState.setRegisters(state.getRegisters().update(state.extractRegisterIndexes().get(0),value));
         return nextState;
     }
     private State ADD(State state){
         State nextState = state.clone();
-        byte registerAddress = state.extractRegisterIndexes().get(0);
-        short lsb = (short) (state.extractLSByte() & 0x00FF);
-        short reg = state.getRegisters().get(registerAddress);
+        int registerAddress = state.extractRegisterIndexes().get(0);
 
-        Tuple2<Short,Boolean> result = addShortUnsigned(lsb,reg);
+        Tuple2<SHORT,Boolean> result = new SHORT(BYTE.of(0),state.extractLSByte()).ADD(state.getRegisters().get(registerAddress));
 
-        short carryFlag = 0x0000;
+        SHORT carryFlag = SHORT.of(0);
         if(result._2()){
-            carryFlag = 0x0001;
+            carryFlag = SHORT.of(1);
         }
 
         nextState.setRegisters(state.getRegisters()
@@ -103,7 +76,7 @@ public class Processor {
     }
 
     private State LDREG(State state){
-        List<Byte> regAddr = state.extractRegisterIndexes();
+        List<Integer> regAddr = state.extractRegisterIndexes();
         State nextState = state.clone();
         nextState.setRegisters(state.getRegisters().update(regAddr.get(0),state.getRegisters().get(regAddr.get(1))));
         return nextState;
@@ -111,120 +84,108 @@ public class Processor {
 
     private State ORREG(State state){
         State nextState = state.clone();
-        List<Byte> regAddr = state.extractRegisterIndexes();
-        List<Short> registers = state.getRegisters();
-        registers = registers.update(regAddr.get(0),
-                (short)(registers.get(regAddr.get(0)) | registers.get(regAddr.get(1))));
+        List<Integer> regAddr = state.extractRegisterIndexes();
+        List<SHORT> registers = state.getRegisters();
+        registers = registers.update(regAddr.get(0), registers.get(regAddr.get(0)).OR(registers.get(regAddr.get(1))));
         nextState.setRegisters(registers);
         return nextState;
     }
     private State ANDREG(State state){
         State nextState = state.clone();
-        List<Byte> regAddr = state.extractRegisterIndexes();
-        List<Short> registers = state.getRegisters();
-        registers = registers.update(regAddr.get(0),
-                (short)(registers.get(regAddr.get(0)) & registers.get(regAddr.get(1))));
+        List<Integer> regAddr = state.extractRegisterIndexes();
+        List<SHORT> registers = state.getRegisters();
+        registers = registers.update(regAddr.get(0), registers.get(regAddr.get(0)).AND(registers.get(regAddr.get(1))));
         nextState.setRegisters(registers);
         return nextState;
     }
     private State XORREG(State state){
         State nextState = state.clone();
-        List<Byte> regAddr = state.extractRegisterIndexes();
-        List<Short> registers = state.getRegisters();
-        registers = registers.update(regAddr.get(0),
-                (short)(registers.get(regAddr.get(0)) ^ registers.get(regAddr.get(1))));
+        List<Integer> regAddr = state.extractRegisterIndexes();
+        List<SHORT> registers = state.getRegisters();
+        registers = registers.update(regAddr.get(0), registers.get(regAddr.get(0)).XOR(registers.get(regAddr.get(1))));
         nextState.setRegisters(registers);
         return nextState;
     }
     private State ADDREG(State state){
         State nextState = state.clone();
-        List<Byte> regAddr = state.extractRegisterIndexes();
-        List<Short> registers = state.getRegisters();
-        Tuple2<Short,Boolean> result = addShortUnsigned(registers.get(regAddr.get(0)),registers.get(regAddr.get(1)));
+        List<Integer> registerAddresses = state.extractRegisterIndexes();
 
-        short carryFlag = 0x0000;
+        Tuple2<SHORT,Boolean> result = state.getRegisters().get(registerAddresses.get(0)).ADD(state.getRegisters().get(registerAddresses.get(1)));
+
+        SHORT carryFlag = SHORT.of(0);
         if(result._2()){
-            carryFlag = 0x0001;
+            carryFlag = SHORT.of(1);
         }
 
         nextState.setRegisters(state.getRegisters()
                 .update(0xF,carryFlag)
-                .update(regAddr.get(0), result._1()));
-        nextState.setRegisters(registers);
+                .update(registerAddresses.get(0), result._1()));
         return nextState;
     }
     private State SUBREG(State state){
         State nextState = state.clone();
-        List<Byte> regAddr = state.extractRegisterIndexes();
-        List<Short> registers = state.getRegisters();
-        int value = registers.get(regAddr.get(0)) - registers.get(regAddr.get(1));
+        List<Integer> registerAddresses = state.extractRegisterIndexes();
 
-        short flag = 0x0000;
-        if(registers.get(regAddr.get(0)) > registers.get(regAddr.get(1))) {
-            flag = 0x0001;
+        Tuple2<SHORT,Boolean> result = state.getRegisters().get(registerAddresses.get(0)).SUB(state.getRegisters().get(registerAddresses.get(1)));
+
+        SHORT carryFlag = SHORT.of(0);
+        if(result._2()){
+            carryFlag = SHORT.of(1);
         }
 
-        registers = registers.update(0xF,flag)
-                .update(regAddr.get(0), (short)(value & 0xFFFF));
-        nextState.setRegisters(registers);
+        nextState.setRegisters(state.getRegisters()
+                .update(0xF,carryFlag)
+                .update(registerAddresses.get(0), result._1()));
         return nextState;
     }
     private State SHRREG(State state){
         State nextState = state.clone();
 
-        short value = state.getRegisters().get(state.extractRegisterIndexes().get(0));
-
-        short flag = 0x0000;
-        if((value & 0x0001) == 0x0001){
-            flag = 0x0001;
-        }
+        SHORT value = state.getRegisters().get(state.extractRegisterIndexes().get(0));
 
         nextState.setRegisters(state.getRegisters()
-                .update(0xF,flag)
-                .update(state.extractRegisterIndexes().get(0), (short) (value>>1)));
+                .update(0xF,value.AND(SHORT.of(0x0001)))
+                .update(state.extractRegisterIndexes().get(0), SHORT.of(value.toInt()/2) ));
 
         return nextState;
     }
     private State SUBNREG(State state){
         State nextState = state.clone();
-        List<Byte> regAddr = state.extractRegisterIndexes().reverse();
-        List<Short> registers = state.getRegisters();
-        int value = registers.get(regAddr.get(0)) - registers.get(regAddr.get(1));
+        List<Integer> registerAddresses = state.extractRegisterIndexes().reverse();
 
-        short flag = 0x0000;
-        if(registers.get(regAddr.get(0)) > registers.get(regAddr.get(1))) {
-            flag = 0x0001;
+        Tuple2<SHORT,Boolean> result = state.getRegisters().get(registerAddresses.get(0)).SUB(state.getRegisters().get(registerAddresses.get(1)));
+
+        SHORT carryFlag = SHORT.of(0);
+        if(result._2()){
+            carryFlag = SHORT.of(1);
         }
 
-        registers = registers.update(0xF,flag)
-                .update(regAddr.get(0), (short)(value & 0xFFFF));
-        nextState.setRegisters(registers);
+        nextState.setRegisters(state.getRegisters()
+                .update(0xF,carryFlag)
+                .update(registerAddresses.get(0), result._1()));
         return nextState;
     }
     private State SHLREG(State state){
         State nextState = state.clone();
-        short value = state.getRegisters().get(state.extractRegisterIndexes().get(0));
 
-        short flag = 0x0000;
-        if((value & 0x8000) == 0x8000){
-            flag = 0x0001;
-        }
+        SHORT value = state.getRegisters().get(state.extractRegisterIndexes().get(0));
 
         nextState.setRegisters(state.getRegisters()
-                .update(0xF,flag)
-                .update(state.extractRegisterIndexes().get(0), (short) (value<<1)));
+                .update(0xF,value.AND(SHORT.of(0x8000)))
+                .update(state.extractRegisterIndexes().get(0), SHORT.of(value.toInt()*2) ));
+
         return nextState;
     }
     private State SNEREG(State state){
-        List<Short> values = state.extractRegisterValues(state.extractRegisterIndexes());
-        if(values.get(0).byteValue() != values.get(1).byteValue()){
+        List<SHORT> values = state.extractRegisterValues(state.extractRegisterIndexes());
+        if(values.get(0).matches(values.get(1))){
             return state.clone().incrProgramCounter();
         }
         return state.clone();
     }
 
     private State LDIADR(State state){
-        short addr = state.extractLSShort();
+        SHORT addr = state.extractLSShort();
         State nextState = state.clone();
         nextState.setIndex(addr);
         return nextState;
@@ -232,62 +193,75 @@ public class Processor {
 
     private State JMPV0ADR(State state){
         State nextState = state.clone();
-        nextState.setProgramCounter(addShortUnsigned(state.extractLSShort(),state.getRegisters().get(0))._1());
+        nextState.setProgramCounter(state.extractLSShort().ADD(state.getRegisters().get(0))._1());
         return nextState;
     }
 
     private State RNDVXAND(State state){
         State nextState = state.clone();
+        nextState.setRegisters(state.getRegisters().update(state.extractRegisterIndexes().get(0), new SHORT(BYTE.of(0),state.extractLSByte()).AND(SHORT.of(new Random().nextInt()))));
+        return nextState;
+    }
 
-        nextState.setRegisters(state.getRegisters().update(state.extractRegisterIndexes().get(0),
-                (short)(state.extractLSByte() & new Random().nextInt())));
-
+    private State LDVXDT(State state){
+        State nextState = state.clone();
+        nextState.setRegisters(state.getRegisters().update(state.extractRegisterIndexes().get(0), new SHORT(BYTE.of(0),state.getDelay())));
+        return nextState;
+    }
+    private State LDDTVX(State state){
+        State nextState = state.clone();
+        nextState.setDelay(state.getRegisters().get(state.extractRegisterIndexes().get(0)).getLower());
+        return nextState;
+    }
+    private State LDSTVX(State state){
+        State nextState = state.clone();
+        nextState.setSound(state.getRegisters().get(state.extractRegisterIndexes().get(0)).getLower());
         return nextState;
     }
 
 
     public Processor(){
         instructionSet = List.of(
-                new Instruction("CLS",(short)0x00E0,(short)0xFFFF, this::CLR),
-                new Instruction("RET",(short)0x00EE,(short)0xFFFF, this::RET),
-                new Instruction("SYS addr",(short)0x0000,(short)0xF000, null),//Not used anymore
-                new Instruction("JP addr",(short)0x1000,(short)0xF000, this::JP),
-                new Instruction("CALL addr",(short)0x2000,(short)0xF000, this::CALL),
-                new Instruction("SE Vx byte",(short)0x3000,(short)0xF000, this::SKIPEQUAL),
-                new Instruction("SNE Vx byte",(short)0x4000,(short)0xF000, this::SKIPNOTEQUAL),
-                new Instruction("SE Vx Vy",(short)0x5000,(short)0xF000, this::SKIPEQUALREG),
-                new Instruction("LD Vx byte",(short)0x6000,(short)0xF000, this::LD),
-                new Instruction("ADD Vx byte",(short)0x7000,(short)0xF000, this::ADD),
-                new Instruction("LD Vx Vy",(short)0x8000,(short)0xF00F, this::LDREG),
-                new Instruction("OR Vx Vy",(short)0x8001,(short)0xF00F, this::ORREG),
-                new Instruction("AND Vx Vy",(short)0x8002,(short)0xF00F, this::ANDREG),
-                new Instruction("XOR Vx Vy",(short)0x8003,(short)0xF00F, this::XORREG),
-                new Instruction("ADD Vx Vy",(short)0x8004,(short)0xF00F, this::ADDREG),
-                new Instruction("SYB Vx Vy",(short)0x8005,(short)0xF00F, this::SUBREG),
-                new Instruction("SHR Vx Vy",(short)0x8006,(short)0xF00F, this::SHRREG),
-                new Instruction("SUBN Vx Vy",(short)0x8007,(short)0xF00F, this::SUBNREG),
-                new Instruction("SHL Vx Vy",(short)0x800E,(short)0xF00F, this::SHLREG),
-                new Instruction("SNE Vx Vy",(short)0x9000,(short)0xF00F, this::SNEREG),
-                new Instruction("LD I addr",(short)0xA000,(short)0xF000, this::LDIADR),
-                new Instruction("JP V0 addr",(short)0xB000,(short)0xF000, this::JMPV0ADR),
-                new Instruction("RND Vx byte",(short)0xC000,(short)0xF000, this::RNDVXAND),
-                new Instruction("DRW Vx Vy nibble",(short)0xD000,(short)0xF000, null),
-                new Instruction("SKP Vx",(short)0xE09E,(short)0xF0FF, null),
-                new Instruction("SKNP Vx",(short)0xE0A1,(short)0xF0FF, null),
-                new Instruction("LD Vx DT",(short)0xF007,(short)0xF0FF, null),
-                new Instruction("LD Vx k",(short)0xF00A,(short)0xF0FF, null),
-                new Instruction("LD DT Vx",(short)0xF015,(short)0xF0FF, null),
-                new Instruction("LD ST Vx",(short)0xF018,(short)0xF0FF, null),
-                new Instruction("ADD I Vx",(short)0xF01E,(short)0xF0FF, null),
-                new Instruction("LD F Vx",(short)0xF029,(short)0xF0FF, null),
-                new Instruction("LD B Vx",(short)0xF033,(short)0xF0FF, null),
-                new Instruction("LD [I] Vx",(short)0xF055,(short)0xF0FF, null),
-                new Instruction("LD Vx [I]",(short)0xF065,(short)0xF0FF, null)
+                new Instruction("CLS",0x00E0,0xFFFF, this::CLR),
+                new Instruction("RET",0x00EE,0xFFFF, this::RET),
+                new Instruction("SYS addr",0x0000,0xF000, null),//Not used anymore
+                new Instruction("JP addr",0x1000,0xF000, this::JP),
+                new Instruction("CALL addr",0x2000,0xF000, this::CALL),
+                new Instruction("SE Vx byte",0x3000,0xF000, this::SKIPEQUAL),
+                new Instruction("SNE Vx byte",0x4000,0xF000, this::SKIPNOTEQUAL),
+                new Instruction("SE Vx Vy",0x5000,0xF000, this::SKIPEQUALREG),
+                new Instruction("LD Vx byte",0x6000,0xF000, this::LD),
+                new Instruction("ADD Vx byte",0x7000,0xF000, this::ADD),
+                new Instruction("LD Vx Vy",0x8000,0xF00F, this::LDREG),
+                new Instruction("OR Vx Vy",0x8001,0xF00F, this::ORREG),
+                new Instruction("AND Vx Vy",0x8002,0xF00F, this::ANDREG),
+                new Instruction("XOR Vx Vy",0x8003,0xF00F, this::XORREG),
+                new Instruction("ADD Vx Vy",0x8004,0xF00F, this::ADDREG),
+                new Instruction("SYB Vx Vy",0x8005,0xF00F, this::SUBREG),
+                new Instruction("SHR Vx Vy",0x8006,0xF00F, this::SHRREG),
+                new Instruction("SUBN Vx Vy",0x8007,0xF00F, this::SUBNREG),
+                new Instruction("SHL Vx Vy",0x800E,0xF00F, this::SHLREG),
+                new Instruction("SNE Vx Vy",0x9000,0xF00F, this::SNEREG),
+                new Instruction("LD I addr",0xA000,0xF000, this::LDIADR),
+                new Instruction("JP V0 addr",0xB000,0xF000, this::JMPV0ADR),
+                new Instruction("RND Vx byte",0xC000,0xF000, this::RNDVXAND),
+                new Instruction("DRW Vx Vy nibble",0xD000,0xF000, null),//TODO: Impliment screen
+                new Instruction("SKP Vx",0xE09E,0xF0FF, null),//TODO: Impliment keyboard
+                new Instruction("SKNP Vx",0xE0A1,0xF0FF, null),//TODO: Impliment keyboard
+                new Instruction("LD Vx DT",0xF007,0xF0FF, this::LDVXDT),
+                new Instruction("LD Vx k",0xF00A,0xF0FF, null),//TODO: Impliment keyboard
+                new Instruction("LD DT Vx",0xF015,0xF0FF, this::LDDTVX),
+                new Instruction("LD ST Vx",0xF018,0xF0FF, this::LDSTVX),
+                new Instruction("ADD I Vx",0xF01E,0xF0FF, null),
+                new Instruction("LD F Vx",0xF029,0xF0FF, null),
+                new Instruction("LD B Vx",0xF033,0xF0FF, null),
+                new Instruction("LD [I] Vx",0xF055,0xF0FF, null),
+                new Instruction("LD Vx [I]",0xF065,0xF0FF, null)
         );
     }
 
     State process(State state){
-        short inst = state.getInst();
+        SHORT inst = state.getInst();
         Option<Instruction> ins = instructionSet.find(i -> i.checkOpcode(inst));
         return ins.get().execute(state).incrProgramCounter();
     }
