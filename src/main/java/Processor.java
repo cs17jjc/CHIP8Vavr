@@ -209,6 +209,13 @@ public class Processor {
         return state.clone();
     }
 
+    private State LDIADR(State state){
+        short addr = state.extractLSShort();
+        State nextState = state.clone();
+        nextState.setIndex(addr);
+        return nextState;
+    }
+
 
     public Processor(){
         instructionSet = List.of(
@@ -232,7 +239,7 @@ public class Processor {
                 new Instruction("SUBN Vx Vy",(short)0x8007,(short)0xF00F, this::SUBNREG),
                 new Instruction("SHL Vx Vy",(short)0x800E,(short)0xF00F, this::SHLREG),
                 new Instruction("SNE Vx Vy",(short)0x9000,(short)0xF00F, this::SNEREG),
-                new Instruction("LD I addr",(short)0xA000,(short)0xF000, null),
+                new Instruction("LD I addr",(short)0xA000,(short)0xF000, this::LDIADR),
                 new Instruction("JP V0 addr",(short)0xB000,(short)0xF000, null),
                 new Instruction("RND Vx byte",(short)0xC000,(short)0xF000, null),
                 new Instruction("DRW Vx Vy nibble",(short)0xD000,(short)0xF000, null),

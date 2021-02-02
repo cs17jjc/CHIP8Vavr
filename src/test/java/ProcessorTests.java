@@ -61,4 +61,39 @@ public class ProcessorTests {
 
     }
 
+    @Test
+    public void testSNE(){
+
+        State state = State.defaultState()
+                .writeInstruction((short)0x0200,(short)0x600A)//0x0A -> reg0
+                .writeInstruction((short)0x0202,(short)0x6100)//0x00 -> reg1
+                .writeInstruction((short)0x0204,(short)0x9010)//SNE
+                .writeInstruction((short)0x0206,(short)0x600B)//0x0B -> reg0
+                .writeInstruction((short)0x0208,(short)0x600C)//0x0C -> reg0
+                ;
+        Processor processor = new Processor();
+
+        List<State> states = Stream.iterate(state, processor::process)
+                .take(5)
+                .toList();
+
+        Assert.assertEquals(0x000C, (short)states.get(4).getRegisters().get(0x0));
+    }
+
+    @Test
+    public void testLIADDR(){
+
+        State state = State.defaultState()
+                .writeInstruction((short)0x0200,(short)0xAF0F)//0x0F0F -> index
+                ;
+        Processor processor = new Processor();
+
+        List<State> states = Stream.iterate(state, processor::process)
+                .take(2)
+                .toList();
+
+        Assert.assertEquals(0x0000, (short)states.get(0).getIndex());
+        Assert.assertEquals(0x0F0F, (short)states.get(1).getIndex());
+    }
+
 }
