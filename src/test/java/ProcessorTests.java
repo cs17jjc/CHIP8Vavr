@@ -96,4 +96,22 @@ public class ProcessorTests {
         Assert.assertEquals(0x0F0F, (short)states.get(1).getIndex());
     }
 
+    @Test
+    public void testJMPV0ADR(){
+        State state = State.defaultState()
+                .writeInstruction((short)0x0200,(short)0x1000)//JMP 0x0000
+                .writeInstruction((short)0x0002,(short)0x6001)//0x0001 -> reg0
+                .writeInstruction((short)0x0004,(short)0xB005)//JMP V0 addr
+                .writeInstruction((short)0x0006,(short)0x600A)//0x000A -> reg0
+                .writeInstruction((short)0x0008,(short)0x600B)//0x00B -> reg0
+                ;
+        Processor processor = new Processor();
+
+        List<State> states = Stream.iterate(state, processor::process)
+                .take(5)
+                .toList();
+
+        Assert.assertEquals(0x000B, (short)states.get(4).getRegisters().get(0x0));
+    }
+
 }

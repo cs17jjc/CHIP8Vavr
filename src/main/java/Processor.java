@@ -169,11 +169,18 @@ public class Processor {
     }
     private State SHRREG(State state){
         State nextState = state.clone();
-        if((state.getRegisters().get(state.extractRegisterIndexes().get(0)) & 0x0001) == 0x0001){
-            nextState.setRegisters(state.getRegisters().update(0xF, (short) 0x0001));
-        } else {
-            nextState.setRegisters(state.getRegisters().update(0xF, (short) 0x0000));
+
+        short value = state.getRegisters().get(state.extractRegisterIndexes().get(0));
+
+        short flag = 0x0000;
+        if((value & 0x0001) == 0x0001){
+            flag = 0x0001;
         }
+
+        nextState.setRegisters(state.getRegisters()
+                .update(0xF,flag)
+                .update(state.extractRegisterIndexes().get(0), (short) (value>>1)));
+
         return nextState;
     }
     private State SUBNREG(State state){
@@ -194,11 +201,16 @@ public class Processor {
     }
     private State SHLREG(State state){
         State nextState = state.clone();
-        if((state.getRegisters().get(state.extractRegisterIndexes().get(0)) & 0x8000) == 0x8000){
-            nextState.setRegisters(state.getRegisters().update(0xF, (short) 0x0001));
-        } else {
-            nextState.setRegisters(state.getRegisters().update(0xF, (short) 0x0000));
+        short value = state.getRegisters().get(state.extractRegisterIndexes().get(0));
+
+        short flag = 0x0000;
+        if((value & 0x8000) == 0x8000){
+            flag = 0x0001;
         }
+
+        nextState.setRegisters(state.getRegisters()
+                .update(0xF,flag)
+                .update(state.extractRegisterIndexes().get(0), (short) (value<<1)));
         return nextState;
     }
     private State SNEREG(State state){
@@ -216,13 +228,19 @@ public class Processor {
         return nextState;
     }
 
+    private State JMPV0ADR(State state){
+        State nextState = state.clone();
+        nextState.setProgramCounter(addShortUnsigned(state.extractLSShort(),state.getRegisters().get(0))._1());
+        return nextState;
+    }
+
 
     public Processor(){
         instructionSet = List.of(
                 new Instruction("CLS",(short)0x00E0,(short)0xFFFF, this::CLR),
                 new Instruction("RET",(short)0x00EE,(short)0xFFFF, this::RET),
                 new Instruction("SYS addr",(short)0x0000,(short)0xF000, null),//Not used anymore
-                new Instruction("JP addr",(short)0x1000,(short)0xF0000, this::JP),
+                new Instruction("JP addr",(short)0x1000,(short)0xF000, this::JP),
                 new Instruction("CALL addr",(short)0x2000,(short)0xF000, this::CALL),
                 new Instruction("SE Vx byte",(short)0x3000,(short)0xF000, this::SKIPEQUAL),
                 new Instruction("SNE Vx byte",(short)0x4000,(short)0xF000, this::SKIPNOTEQUAL),
@@ -240,7 +258,7 @@ public class Processor {
                 new Instruction("SHL Vx Vy",(short)0x800E,(short)0xF00F, this::SHLREG),
                 new Instruction("SNE Vx Vy",(short)0x9000,(short)0xF00F, this::SNEREG),
                 new Instruction("LD I addr",(short)0xA000,(short)0xF000, this::LDIADR),
-                new Instruction("JP V0 addr",(short)0xB000,(short)0xF000, null),
+                new Instruction("JP V0 addr",(short)0xB000,(short)0xF000, this::JMPV0ADR),
                 new Instruction("RND Vx byte",(short)0xC000,(short)0xF000, null),
                 new Instruction("DRW Vx Vy nibble",(short)0xD000,(short)0xF000, null),
                 new Instruction("SKP Vx",(short)0xE09E,(short)0xF0FF, null),
