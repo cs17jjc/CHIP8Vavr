@@ -3,6 +3,8 @@ import io.vavr.Tuple2;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
 
+import java.util.Random;
+
 public class Processor {
 
     List<Instruction> instructionSet;
@@ -234,6 +236,15 @@ public class Processor {
         return nextState;
     }
 
+    private State RNDVXAND(State state){
+        State nextState = state.clone();
+
+        nextState.setRegisters(state.getRegisters().update(state.extractRegisterIndexes().get(0),
+                (short)(state.extractLSByte() & new Random().nextInt())));
+
+        return nextState;
+    }
+
 
     public Processor(){
         instructionSet = List.of(
@@ -259,7 +270,7 @@ public class Processor {
                 new Instruction("SNE Vx Vy",(short)0x9000,(short)0xF00F, this::SNEREG),
                 new Instruction("LD I addr",(short)0xA000,(short)0xF000, this::LDIADR),
                 new Instruction("JP V0 addr",(short)0xB000,(short)0xF000, this::JMPV0ADR),
-                new Instruction("RND Vx byte",(short)0xC000,(short)0xF000, null),
+                new Instruction("RND Vx byte",(short)0xC000,(short)0xF000, this::RNDVXAND),
                 new Instruction("DRW Vx Vy nibble",(short)0xD000,(short)0xF000, null),
                 new Instruction("SKP Vx",(short)0xE09E,(short)0xF0FF, null),
                 new Instruction("SKNP Vx",(short)0xE0A1,(short)0xF0FF, null),
