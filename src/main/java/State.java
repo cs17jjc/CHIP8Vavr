@@ -124,6 +124,8 @@ public class State {
             getRegisters().forEach(s -> System.out.printf("0x%04X ",s.toInt()));
             System.out.print("| ");
             getStack().forEach(s -> System.out.printf("0x%04X ",s.toInt()));
+            System.out.print("| ");
+            getMemory().slice(0,32).forEach(s -> System.out.printf("0x%02X ",s.toInt()));
             System.out.println();
         }
         return this;

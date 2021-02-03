@@ -247,7 +247,13 @@ public class Processor {
     }
     private State LDVXI(State state) {
         State nextState = state.clone();
+        int lastRegIndex = state.extractRegisterIndexes().get(0);
+        int lastMemIndex = state.getIndex().toInt() + ((lastRegIndex+1) * 2);
 
+        List<BYTE> mem = List.range(state.getIndex().toInt(), lastMemIndex).map(i -> state.getMemory().get(i));
+        List<SHORT> reg = List.range(0, lastRegIndex+1).map(i -> new SHORT(mem.get(i*2), mem.get(1 + (i*2))));
+
+        nextState.setRegisters(reg.appendAll(state.getRegisters().slice(reg.length(),0xF)));
         return nextState;
     }
 

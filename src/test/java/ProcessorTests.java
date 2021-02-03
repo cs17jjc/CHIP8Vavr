@@ -152,20 +152,49 @@ public class ProcessorTests {
     public void testLDIVX(){
         State state = State.defaultState()
                 .writeInstruction(0x0200,0x60FF)//0x00FF -> reg0
-                .writeInstruction(0x0200,0x60AA)//0x00AA -> reg1
-                .writeInstruction(0x0200,0x60C3)//0x00C3 -> reg2
-                .writeInstruction(0x0202,0xA000)//0x0000 -> index
-                .writeInstruction(0x0204,0xF255)//LDIVX
+                .writeInstruction(0x0202,0x61AA)//0x00AA -> reg1
+                .writeInstruction(0x0204,0x62C3)//0x00C3 -> reg2
+                .writeInstruction(0x0206,0xA000)//0x0000 -> index
+                .writeInstruction(0x0208,0xF255)//LDIVX
                 ;
         Processor processor = new Processor();
 
         List<State> states = Stream.iterate(state, processor::process)
-                .take(5)
+                .map(s -> s.print(false))
+                .take(6)
                 .toList();
 
-        Assert.assertEquals(0x00FF, states.get(4).getMemory().get(0X00).toInt());
-        Assert.assertEquals(0x00AA, states.get(4).getMemory().get(0x01).toInt());
-        Assert.assertEquals(0x00C3, states.get(4).getMemory().get(0x02).toInt());
+        Assert.assertEquals(0x00, states.get(5).getMemory().get(0X00).toInt());
+        Assert.assertEquals(0xFF, states.get(5).getMemory().get(0x01).toInt());
+        Assert.assertEquals(0x00, states.get(5).getMemory().get(0x02).toInt());
+        Assert.assertEquals(0xAA, states.get(5).getMemory().get(0X03).toInt());
+        Assert.assertEquals(0x00, states.get(5).getMemory().get(0x04).toInt());
+        Assert.assertEquals(0xC3, states.get(5).getMemory().get(0x05).toInt());
+    }
+
+    @Test
+    public void testLDVXI(){
+        State state = State.defaultState()
+                .writeInstruction(0x0200,0x60FF)//0x00FF -> reg0
+                .writeInstruction(0x0202,0x61AA)//0x00AA -> reg1
+                .writeInstruction(0x0204,0x62C3)//0x00C3 -> reg2
+                .writeInstruction(0x0206,0xA000)//0x0000 -> index
+                .writeInstruction(0x0208,0xF255)//LDIVX
+                .writeInstruction(0x020A,0x6000)//0x0000 -> reg0
+                .writeInstruction(0x020C,0x6100)//0x0000 -> reg1
+                .writeInstruction(0x020E,0x6200)//0x0000 -> reg2
+                .writeInstruction(0x0210,0xF265)//LDVXI
+                ;
+        Processor processor = new Processor();
+
+        List<State> states = Stream.iterate(state, processor::process)
+                .map(s -> s.print(true))
+                .take(10)
+                .toList();
+
+        Assert.assertEquals(0x00FF, states.get(9).getRegisters().get(0X0).toInt());
+        Assert.assertEquals(0x00AA, states.get(9).getRegisters().get(0X1).toInt());
+        Assert.assertEquals(0x00C3, states.get(9).getRegisters().get(0x2).toInt());
     }
 
 }
