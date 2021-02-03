@@ -224,6 +224,17 @@ public class Processor {
         return nextState;
     }
 
+    private State LDBVX(State state){
+        State nextState = state.clone();
+        int index = state.getIndex().toInt();
+        int value = state.getRegisters().get(state.extractRegisterIndexes().get(0)).toInt();
+        int H = value/100;
+        int T = (value / 10) - (H * 10);
+        int D = value - (T * 10) - (H * 100);
+        nextState.setMemory(state.getMemory().update(index,BYTE.of(H)).update(index+1,BYTE.of(T)).update(index+2,BYTE.of(D)));
+        return nextState;
+    }
+
     public Processor(){
         instructionSet = List.of(
                 new Instruction("CLS",0x00E0,0xFFFF, this::CLR),
@@ -249,16 +260,16 @@ public class Processor {
                 new Instruction("LD I addr",0xA000,0xF000, this::LDIADR),
                 new Instruction("JP V0 addr",0xB000,0xF000, this::JMPV0ADR),
                 new Instruction("RND Vx byte",0xC000,0xF000, this::RNDVXAND),
-                new Instruction("DRW Vx Vy nibble",0xD000,0xF000, null),//TODO: Impliment screen
-                new Instruction("SKP Vx",0xE09E,0xF0FF, null),//TODO: Impliment keyboard
-                new Instruction("SKNP Vx",0xE0A1,0xF0FF, null),//TODO: Impliment keyboard
+                new Instruction("DRW Vx Vy nibble",0xD000,0xF000, null),//TODO: Implement screen
+                new Instruction("SKP Vx",0xE09E,0xF0FF, null),//TODO: Implement keyboard
+                new Instruction("SKNP Vx",0xE0A1,0xF0FF, null),//TODO: Implement keyboard
                 new Instruction("LD Vx DT",0xF007,0xF0FF, this::LDVXDT),
-                new Instruction("LD Vx k",0xF00A,0xF0FF, null),//TODO: Impliment keyboard
+                new Instruction("LD Vx k",0xF00A,0xF0FF, null),//TODO: Implement keyboard
                 new Instruction("LD DT Vx",0xF015,0xF0FF, this::LDDTVX),
                 new Instruction("LD ST Vx",0xF018,0xF0FF, this::LDSTVX),
                 new Instruction("ADD I Vx",0xF01E,0xF0FF, this::ADDIVX),
-                new Instruction("LD F Vx",0xF029,0xF0FF, null),
-                new Instruction("LD B Vx",0xF033,0xF0FF, null),
+                new Instruction("LD F Vx",0xF029,0xF0FF, null),//TODO: Implement keyboard
+                new Instruction("LD B Vx",0xF033,0xF0FF, this::LDBVX),
                 new Instruction("LD [I] Vx",0xF055,0xF0FF, null),
                 new Instruction("LD Vx [I]",0xF065,0xF0FF, null)
         );

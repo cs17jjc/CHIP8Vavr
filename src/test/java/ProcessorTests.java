@@ -130,4 +130,22 @@ public class ProcessorTests {
         assertShortsInt(0x0100, states.get(3).getIndex());
     }
 
+    @Test
+    public void testLDBVX(){
+        State state = State.defaultState()
+                .writeInstruction(0x0200,0x60FF)//0x00FF -> reg0
+                .writeInstruction(0x0202,0xA00F)//0x0000 -> index
+                .writeInstruction(0x0204,0xF033)//LDBVX
+                ;
+        Processor processor = new Processor();
+
+        List<State> states = Stream.iterate(state, processor::process)
+                .take(4)
+                .toList();
+
+        Assert.assertEquals(0x0002, states.get(3).getMemory().get(0X0F).toInt());
+        Assert.assertEquals(0x0005, states.get(3).getMemory().get(0x10).toInt());
+        Assert.assertEquals(0x0005, states.get(3).getMemory().get(0x11).toInt());
+    }
+
 }
