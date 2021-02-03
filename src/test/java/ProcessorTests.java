@@ -27,8 +27,6 @@ public class ProcessorTests {
                 .take(6)
                 .toList();
 
-        states.forEach(s -> s.print(true));
-
         assertShortsInt(0x000A, states.get(1).getRegisters().get(0x0));
         assertShortsInt(0x0014, states.get(2).getRegisters().get(0x0));
         assertShortsInt(0x0024, states.get(4).getRegisters().get(0x0));
@@ -54,8 +52,6 @@ public class ProcessorTests {
                 .take(6)
                 .toList();
 
-        states.forEach(s -> s.print(true));
-
         assertShortsInt(0x0001, states.get(3).getRegisters().get(0x0));
         assertShortsInt(0x0001, states.get(3).getRegisters().get(0xF));
 
@@ -79,8 +75,6 @@ public class ProcessorTests {
         List<State> states = Stream.iterate(state, processor::process)
                 .take(5)
                 .toList();
-
-        states.forEach(s -> s.print(true));
 
         assertShortsInt(0x000C, states.get(4).getRegisters().get(0x0));
     }
@@ -117,6 +111,23 @@ public class ProcessorTests {
                 .toList();
 
         assertShortsInt(0x000B, states.get(4).getRegisters().get(0x0));
+    }
+
+    @Test
+    public void testADDIVX(){
+        State state = State.defaultState()
+                .writeInstruction(0x0200,0x60FF)//0x00FF -> reg0
+                .writeInstruction(0x0202,0xA001)//0x0001 -> index
+                .writeInstruction(0x0204,0xF01E)//index + reg0 -> index
+                ;
+        Processor processor = new Processor();
+
+        List<State> states = Stream.iterate(state, processor::process)
+                .take(4)
+                .toList();
+
+        assertShortsInt(0x0001, states.get(2).getIndex());
+        assertShortsInt(0x0100, states.get(3).getIndex());
     }
 
 }

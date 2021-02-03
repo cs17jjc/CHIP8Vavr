@@ -1,6 +1,5 @@
 import DataTypes.BYTE;
 import DataTypes.SHORT;
-import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
@@ -145,7 +144,7 @@ public class Processor {
 
         nextState.setRegisters(state.getRegisters()
                 .update(0xF,value.AND(SHORT.of(0x0001)))
-                .update(state.extractRegisterIndexes().get(0), SHORT.of(value.toInt()/2) ));
+                .update(state.extractRegisterIndexes().get(0), SHORT.of(value.toInt()>>>1) ));
 
         return nextState;
     }
@@ -172,7 +171,7 @@ public class Processor {
 
         nextState.setRegisters(state.getRegisters()
                 .update(0xF,value.AND(SHORT.of(0x8000)))
-                .update(state.extractRegisterIndexes().get(0), SHORT.of(value.toInt()*2) ));
+                .update(state.extractRegisterIndexes().get(0), SHORT.of(value.toInt()<<1) ));
 
         return nextState;
     }
@@ -186,7 +185,6 @@ public class Processor {
 
     private State LDIADR(State state){
         SHORT addr = state.extractLSShort();
-        System.out.printf("0x%04X %n", addr.toInt());
         State nextState = state.clone();
         nextState.setIndex(addr);
         return nextState;
@@ -220,6 +218,11 @@ public class Processor {
         return nextState;
     }
 
+    private State ADDIVX(State state) {
+        State nextState = state.clone();
+        nextState.setIndex(state.getIndex().ADD(state.extractRegisterValues(state.extractRegisterIndexes()).get(0))._1());
+        return nextState;
+    }
 
     public Processor(){
         instructionSet = List.of(
@@ -253,7 +256,7 @@ public class Processor {
                 new Instruction("LD Vx k",0xF00A,0xF0FF, null),//TODO: Impliment keyboard
                 new Instruction("LD DT Vx",0xF015,0xF0FF, this::LDDTVX),
                 new Instruction("LD ST Vx",0xF018,0xF0FF, this::LDSTVX),
-                new Instruction("ADD I Vx",0xF01E,0xF0FF, null),
+                new Instruction("ADD I Vx",0xF01E,0xF0FF, this::ADDIVX),
                 new Instruction("LD F Vx",0xF029,0xF0FF, null),
                 new Instruction("LD B Vx",0xF033,0xF0FF, null),
                 new Instruction("LD [I] Vx",0xF055,0xF0FF, null),

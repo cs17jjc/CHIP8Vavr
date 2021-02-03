@@ -22,12 +22,6 @@ public class Instruction {
     }
 
     boolean checkOpcode(SHORT inst){
-        if(inst.AND(mask).matches(opcode) & false) {
-            System.out.printf("0x%04X ", opcode.toInt());
-            System.out.printf("0x%04X ", inst.toInt());
-            System.out.printf("0x%04X ", mask.toInt());
-            System.out.printf("0x%04X %n", inst.AND(mask).toInt());
-        }
         return inst.AND(mask).matches(opcode);
     }
 
