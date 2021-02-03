@@ -235,6 +235,22 @@ public class Processor {
         return nextState;
     }
 
+    private State LDIVX(State state) {
+        State nextState = state.clone();
+        int lastRegIndex = state.extractRegisterIndexes().get(0);
+        List<SHORT> regValues = List.range(0,lastRegIndex+1).map(i -> state.getRegisters().get(i));
+        List<BYTE> mem = state.getMemory().slice(0,state.getIndex().toInt());
+        mem = mem.appendAll(regValues.flatMap(s -> List.of(s.getUpper(),s.getLower())));
+        mem = mem.appendAll(state.getMemory().slice(mem.length(),state.getMemory().length()-1));
+        nextState.setMemory(mem);
+        return nextState;
+    }
+    private State LDVXI(State state) {
+        State nextState = state.clone();
+
+        return nextState;
+    }
+
     public Processor(){
         instructionSet = List.of(
                 new Instruction("CLS",0x00E0,0xFFFF, this::CLR),
@@ -270,8 +286,8 @@ public class Processor {
                 new Instruction("ADD I Vx",0xF01E,0xF0FF, this::ADDIVX),
                 new Instruction("LD F Vx",0xF029,0xF0FF, null),//TODO: Implement keyboard
                 new Instruction("LD B Vx",0xF033,0xF0FF, this::LDBVX),
-                new Instruction("LD [I] Vx",0xF055,0xF0FF, null),
-                new Instruction("LD Vx [I]",0xF065,0xF0FF, null)
+                new Instruction("LD [I] Vx",0xF055,0xF0FF, this::LDIVX),
+                new Instruction("LD Vx [I]",0xF065,0xF0FF, this::LDVXI)
         );
     }
 

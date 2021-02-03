@@ -134,7 +134,7 @@ public class ProcessorTests {
     public void testLDBVX(){
         State state = State.defaultState()
                 .writeInstruction(0x0200,0x60FF)//0x00FF -> reg0
-                .writeInstruction(0x0202,0xA00F)//0x0000 -> index
+                .writeInstruction(0x0202,0xA00F)//0x000F -> index
                 .writeInstruction(0x0204,0xF033)//LDBVX
                 ;
         Processor processor = new Processor();
@@ -146,6 +146,26 @@ public class ProcessorTests {
         Assert.assertEquals(0x0002, states.get(3).getMemory().get(0X0F).toInt());
         Assert.assertEquals(0x0005, states.get(3).getMemory().get(0x10).toInt());
         Assert.assertEquals(0x0005, states.get(3).getMemory().get(0x11).toInt());
+    }
+
+    @Test
+    public void testLDIVX(){
+        State state = State.defaultState()
+                .writeInstruction(0x0200,0x60FF)//0x00FF -> reg0
+                .writeInstruction(0x0200,0x60AA)//0x00AA -> reg1
+                .writeInstruction(0x0200,0x60C3)//0x00C3 -> reg2
+                .writeInstruction(0x0202,0xA000)//0x0000 -> index
+                .writeInstruction(0x0204,0xF255)//LDIVX
+                ;
+        Processor processor = new Processor();
+
+        List<State> states = Stream.iterate(state, processor::process)
+                .take(5)
+                .toList();
+
+        Assert.assertEquals(0x00FF, states.get(4).getMemory().get(0X00).toInt());
+        Assert.assertEquals(0x00AA, states.get(4).getMemory().get(0x01).toInt());
+        Assert.assertEquals(0x00C3, states.get(4).getMemory().get(0x02).toInt());
     }
 
 }
