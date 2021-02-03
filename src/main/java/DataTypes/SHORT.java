@@ -3,8 +3,6 @@ package DataTypes;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 
-import java.util.Objects;
-
 public class SHORT {
     BYTE upper;
     BYTE lower;
@@ -23,7 +21,7 @@ public class SHORT {
     }
 
     public int toInt(){
-        return (upper.toInt() + BYTE.of(0xFF).toInt()) + lower.toInt();
+        return (upper.toInt() << 8) + lower.toInt();
     }
 
     public SHORT AND(SHORT b){
@@ -41,15 +39,22 @@ public class SHORT {
         return Tuple.of(new SHORT(t2._1(),t._1()),t._2());
     }
     public Tuple2<SHORT, Boolean> SUB(SHORT b){
-        Tuple2<BYTE, Boolean> t = upper.SUB(b.upper, false);
-        Tuple2<BYTE, Boolean> t2 = lower.SUB(b.lower, t._2());
-        return Tuple.of(new SHORT(t._1(),t2._1()),t2._2());
+        Tuple2<BYTE, Boolean> t = lower.SUB(b.lower, true);
+        Tuple2<BYTE, Boolean> t2 = upper.SUB(b.upper, t._2());
+        return Tuple.of(new SHORT(t2._1(),t._1()),t2._2());
     }
     public BYTE getNibble(int i){
-        if (i < 2) {
-            return lower.getNibble(i);
-        } else {
-            return upper.getNibble(i-2);
+        switch (i){
+            case 0:
+                return upper.getNibble(true);
+            case 1:
+                return upper.getNibble(false);
+            case 2:
+                return lower.getNibble(true);
+            case 3:
+                return lower.getNibble(false);
+            default:
+                return null;
         }
     }
     public BYTE getUpper(){

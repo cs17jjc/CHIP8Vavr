@@ -34,7 +34,7 @@ public class BYTE {
     }
 
     public Tuple2<BYTE,Boolean> SUB(BYTE b,boolean borrow){
-        return ADD(b.invert(),true);
+        return ADD(b.invert(),borrow);
     }
 
     public BYTE invert(){
@@ -55,8 +55,11 @@ public class BYTE {
         return bits.zip(b.bits).map(t -> t._1() == t._2()).reduce((x,y) -> x & y);
     }
 
-    public BYTE getNibble(int i){
-        return new BYTE(bits.subSequence(i,i+4).leftPadTo(8,false));
+    public BYTE getNibble(boolean upper){
+        if(upper){
+            return new BYTE(bits.slice(0,4).leftPadTo(8,false));
+        }
+        return new BYTE(bits.slice(4,8).leftPadTo(8,false));
     }
 
     public int toInt(){

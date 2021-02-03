@@ -80,16 +80,19 @@ public class State {
     }
 
     public SHORT getInst(){
-        return new SHORT(memory.get(programCounter.toInt()),memory.get(programCounter.toInt()+1));
+        BYTE up = memory.get(programCounter.toInt());
+        BYTE low = memory.get(programCounter.ADD(SHORT.of(1))._1().toInt());
+        return new SHORT(up,low);
     }
 
     public State incrProgramCounter(){
-        programCounter = programCounter.ADD(SHORT.of(1))._1();
-        return this;
+        State nextState = clone();
+        nextState.setProgramCounter(getProgramCounter().ADD(SHORT.of(2))._1());
+        return nextState;
     }
 
     public List<Integer> extractRegisterIndexes(){
-        return List.of(getInst().getNibble(2),getInst().getNibble(1)).map(BYTE::toInt);
+        return List.of(getInst().getNibble(1).toInt(),getInst().getNibble(2).toInt());
     }
 
     public List<SHORT> extractRegisterValues(List<Integer> indexes){
@@ -97,11 +100,11 @@ public class State {
     }
 
     public BYTE extractLSByte(){
-        return getIndex().getLower();
+        return getInst().getLower();
     }
 
     public SHORT extractLSShort(){
-        return new SHORT(getIndex().getNibble(3),extractLSByte());
+        return new SHORT(getInst().getNibble(1),extractLSByte());
     }
 
     public State writeInstruction(int addr, int instruction){

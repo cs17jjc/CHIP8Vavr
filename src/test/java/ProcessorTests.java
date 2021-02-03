@@ -80,6 +80,8 @@ public class ProcessorTests {
                 .take(5)
                 .toList();
 
+        states.forEach(s -> s.print(true));
+
         assertShortsInt(0x000C, states.get(4).getRegisters().get(0x0));
     }
 
@@ -115,22 +117,6 @@ public class ProcessorTests {
                 .toList();
 
         assertShortsInt(0x000B, states.get(4).getRegisters().get(0x0));
-    }
-
-    @Test
-    public void test(){
-
-        State state = State.defaultState()
-                .writeInstruction(0x0200,0x1000)//JMP 0x0000
-                ;
-        Processor processor = new Processor();
-
-        List<State> states = Stream.iterate(state, processor::process)
-                .take(5)
-                .toList();
-
-        assertShortsInt(0x000B, states.get(4).getRegisters().get(0x0));
-
     }
 
 }

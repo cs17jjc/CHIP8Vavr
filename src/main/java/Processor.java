@@ -178,7 +178,7 @@ public class Processor {
     }
     private State SNEREG(State state){
         List<SHORT> values = state.extractRegisterValues(state.extractRegisterIndexes());
-        if(values.get(0).matches(values.get(1))){
+        if(!values.get(0).matches(values.get(1))){
             return state.clone().incrProgramCounter();
         }
         return state.clone();
@@ -186,6 +186,7 @@ public class Processor {
 
     private State LDIADR(State state){
         SHORT addr = state.extractLSShort();
+        System.out.printf("0x%04X %n", addr.toInt());
         State nextState = state.clone();
         nextState.setIndex(addr);
         return nextState;
