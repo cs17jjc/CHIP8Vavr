@@ -164,12 +164,9 @@ public class ProcessorTests {
                 .take(6)
                 .toList();
 
-        Assert.assertEquals(0x00, states.get(5).getMemory().get(0X00).toInt());
-        Assert.assertEquals(0xFF, states.get(5).getMemory().get(0x01).toInt());
-        Assert.assertEquals(0x00, states.get(5).getMemory().get(0x02).toInt());
-        Assert.assertEquals(0xAA, states.get(5).getMemory().get(0X03).toInt());
-        Assert.assertEquals(0x00, states.get(5).getMemory().get(0x04).toInt());
-        Assert.assertEquals(0xC3, states.get(5).getMemory().get(0x05).toInt());
+        Assert.assertEquals(0xFF, states.get(5).getMemory().get(0x00).toInt());
+        Assert.assertEquals(0xAA, states.get(5).getMemory().get(0X01).toInt());
+        Assert.assertEquals(0xC3, states.get(5).getMemory().get(0x02).toInt());
     }
 
     @Test
@@ -188,13 +185,13 @@ public class ProcessorTests {
         Processor processor = new Processor();
 
         List<State> states = Stream.iterate(state, processor::process)
-                .map(s -> s.print(true))
+                .map(s -> s.print(false))
                 .take(10)
                 .toList();
 
-        Assert.assertEquals(0x00FF, states.get(9).getRegisters().get(0X0).toInt());
-        Assert.assertEquals(0x00AA, states.get(9).getRegisters().get(0X1).toInt());
-        Assert.assertEquals(0x00C3, states.get(9).getRegisters().get(0x2).toInt());
+        Assert.assertEquals(0xFF, states.get(9).getRegisters().get(0X0).toInt());
+        Assert.assertEquals(0xAA, states.get(9).getRegisters().get(0X1).toInt());
+        Assert.assertEquals(0xC3, states.get(9).getRegisters().get(0x2).toInt());
     }
 
 }

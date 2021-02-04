@@ -220,7 +220,13 @@ public class Processor {
 
     private State ADDIVX(State state) {
         State nextState = state.clone();
-        nextState.setIndex(state.getIndex().ADD(state.extractRegisterValues(state.extractRegisterIndexes()).get(0))._1());
+        SHORT stateIndex = state.getIndex();
+        int regIndex = state.extractRegisterIndexes().get(0);
+        SHORT regValue = state.getRegisters().get(regIndex);
+
+        SHORT add = stateIndex.ADD(regValue)._1();
+        System.out.printf("%d %d %d %n", stateIndex.toInt(),regValue.toInt(),add.toInt());
+        nextState.setIndex(add);
         return nextState;
     }
 
@@ -237,23 +243,27 @@ public class Processor {
 
     private State LDIVX(State state) {
         State nextState = state.clone();
-        int lastRegIndex = state.extractRegisterIndexes().get(0);
-        List<SHORT> regValues = List.range(0,lastRegIndex+1).map(i -> state.getRegisters().get(i));
+
+        int lastRegister = state.extractRegisterIndexes().get(0);
+
         List<BYTE> mem = state.getMemory().slice(0,state.getIndex().toInt());
-        mem = mem.appendAll(regValues.flatMap(s -> List.of(s.getUpper(),s.getLower())));
-        mem = mem.appendAll(state.getMemory().slice(mem.length(),state.getMemory().length()-1));
+        mem = mem.appendAll(state.getRegisters().slice(0,lastRegister+1).map(SHORT::getLower));
+        mem = mem.appendAll(state.getMemory().slice(mem.length(), 4096));
+
         nextState.setMemory(mem);
         return nextState;
     }
+
     private State LDVXI(State state) {
         State nextState = state.clone();
-        int lastRegIndex = state.extractRegisterIndexes().get(0);
-        int lastMemIndex = state.getIndex().toInt() + ((lastRegIndex+1) * 2);
+        int lastRegister = state.extractRegisterIndexes().get(0);
 
-        List<BYTE> mem = List.range(state.getIndex().toInt(), lastMemIndex).map(i -> state.getMemory().get(i));
-        List<SHORT> reg = List.range(0, lastRegIndex+1).map(i -> new SHORT(mem.get(i*2), mem.get(1 + (i*2))));
+        List<BYTE> mem = state.getMemory().slice(state.getIndex().toInt(),state.getIndex().toInt() + lastRegister + 1);
+        List<SHORT> reg = mem.map(b -> new SHORT(BYTE.of(0),b));
+        reg = reg.appendAll(state.getRegisters().slice(reg.length(),0xF));
 
-        nextState.setRegisters(reg.appendAll(state.getRegisters().slice(reg.length(),0xF)));
+        nextState.setRegisters(reg);
+
         return nextState;
     }
 

@@ -121,6 +121,7 @@ public class State {
         if(print){
             System.out.printf("0x%04X PC | ",getProgramCounter().toInt());
             System.out.printf("0x%04X INST | ",getInst().toInt());
+            System.out.printf("0x%04X INDX | ",getIndex().toInt());
             getRegisters().forEach(s -> System.out.printf("0x%04X ",s.toInt()));
             System.out.print("| ");
             getStack().forEach(s -> System.out.printf("0x%04X ",s.toInt()));
@@ -130,4 +131,31 @@ public class State {
         }
         return this;
     }
+
+    static class Builder{
+        int counter;
+        State state;
+
+        public Builder(){
+            this.state = defaultState();
+            this.counter = state.programCounter.toInt();
+        }
+
+        Builder addInst(int instruction){
+            state = state.writeInstruction(counter,instruction);
+            counter += 2;
+            return this;
+        }
+
+        Builder setCounter(int value){
+            counter = value;
+            return this;
+        }
+
+        State build(){
+            return state;
+        }
+
+    }
+
 }
